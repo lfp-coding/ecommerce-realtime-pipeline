@@ -1,0 +1,59 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environments (lokal, nicht committen)
+.venv/
+venv/
+env/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs und Laufzeitdateien
+logs/
+*.log
+
+# Python tooling caches
+.pytest_cache/
+.cache/
+.mypy_cache/
+.coverage
+.coverage.*
+
+# Local environment
+.env
+
+# Data (nur Samples im Repo lassen)
+data/*.csv
+data/*.parquet
+data/*.json
+data/raw/
+data/interim/
+data/processed/
+
+# Allow sample data directory to exist but not commit generated files
+!data/sample/
+data/sample/*
+
+# dbt artifacts (falls später dbt genutzt wird; jetzt schon ausschließen)
+sql/dbt/target/
+sql/dbt/dbt_packages/
+sql/dbt/logs/
+
+# Docker
+docker/*.tmp
