@@ -1,24 +1,23 @@
 # Data Processing
 pandas==2.3.1
 numpy==1.26.4
-faker==19.6.2
 
 # Kafka
-kafka-python==2.2.15
-confluent-kafka==2.7.0
+confluent-kafka==2.11.0
 
 # Database
 psycopg2-binary==2.9.10
-SQLAlchemy==2.0.42
+SQLAlchemy==2.0.43
 
 # Testing
 pytest==8.4.1
-pytest-mock==3.12.0
+pytest-mock==3.14.0
 
 # Dashboard
-streamlit==1.28.2
+streamlit==1.48.0
 
 # Utilities
-python-dotenv==1.0.0
-loguru==0.7.2
-pydantic==2.5.0
+python-dotenv==1.1.1
+pydantic==2.11.7
+pydantic-settings==2.10.1
+structlog==25.4.0
