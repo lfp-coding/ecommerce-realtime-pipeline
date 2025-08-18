@@ -33,7 +33,7 @@ logs/               : runtime logs (git-ignored)
 ## Tech Stack
 
 - Python 3.11+
-- Kafka + Zookeeper
+- Kafka
 - PostgreSQL
 - dbt
 - Streamlit
