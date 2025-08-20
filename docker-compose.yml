@@ -1,0 +1,204 @@
+services:
+  # Kafka node 1 (Combined Broker + Controller)
+  kafka1:
+    image: confluentinc/cp-kafka:7.7.1
+    hostname: kafka1
+    container_name: ecommerce-kafka1
+    ports:
+      - "9092:9092"
+      - "9101:9101"
+    environment: &kafka-env
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_LISTENERS: "PLAINTEXT://kafka1:29092,CONTROLLER://kafka1:29093,EXTERNAL://0.0.0.0:9092"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka1:29092,EXTERNAL://localhost:9092"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka1:29093,2@kafka2:29093,3@kafka3:29093"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+      CLUSTER_ID: ${KAFKA_CLUSTER_ID}
+
+      # Security: PLAINTEXT
+      KAFKA_SECURITY_PROTOCOL: "PLAINTEXT"
+
+      # Performance
+      KAFKA_LOG_DIRS: "/var/lib/kafka/data"
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_HEAP_OPTS: "-Xmx1G -Xms1G"
+      # JMX
+      KAFKA_JMX_PORT: 9101
+    volumes:
+      - kafka1-data:/var/lib/kafka/data
+    networks:
+      - ecommerce-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "kafka-broker-api-versions",
+          "--bootstrap-server",
+          "kafka1:29092",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      com.ecommerce.role: kafka-node
+
+  # Kafka Node 2 (Combined)
+  kafka2:
+    image: confluentinc/cp-kafka:7.7.1
+    hostname: kafka2
+    container_name: ecommerce-kafka2
+    ports:
+      - "9093:9092"
+      - "9102:9101"
+    environment:
+      <<: *kafka-env
+      KAFKA_NODE_ID: 2
+      KAFKA_LISTENERS: "PLAINTEXT://kafka2:29092,CONTROLLER://kafka2:29093,EXTERNAL://0.0.0.0:9092"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka2:29092,EXTERNAL://localhost:9093"
+    volumes:
+      - kafka2-data:/var/lib/kafka/data
+    networks:
+      - ecommerce-network
+    depends_on:
+      - kafka1
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "kafka-broker-api-versions",
+          "--bootstrap-server",
+          "kafka2:29092",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      com.ecommerce.role: kafka-node
+
+  # Kafka Node 3 (Combined)
+  kafka3:
+    image: confluentinc/cp-kafka:7.7.1
+    hostname: kafka3
+    container_name: ecommerce-kafka3
+    ports:
+      - "9094:9092"
+      - "9103:9101"
+    environment:
+      <<: *kafka-env
+      KAFKA_NODE_ID: 3
+      KAFKA_LISTENERS: "PLAINTEXT://kafka3:29092,CONTROLLER://kafka3:29093,EXTERNAL://0.0.0.0:9092"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka3:29092,EXTERNAL://localhost:9094"
+    volumes:
+      - kafka3-data:/var/lib/kafka/data
+    networks:
+      - ecommerce-network
+    depends_on:
+      - kafka1
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "kafka-broker-api-versions",
+          "--bootstrap-server",
+          "kafka3:29092",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      com.ecommerce.role: kafka-node
+
+  # PostgreSQL
+  postgres:
+    image: postgres:16.4-alpine
+    hostname: postgres
+    container_name: ecommerce-postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./sql/init:/docker-entrypoint-initdb.d
+    networks:
+      - ecommerce-network
+    command:
+      - "postgres"
+      - "-c"
+      - "shared_buffers=256MB"
+      - "-c"
+      - "work_mem=64MB"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Kafka UI
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.2
+    container_name: ecommerce-kafka-ui
+    depends_on:
+      - kafka1
+      - kafka2
+      - kafka3
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: ecommerce-kraft-cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka1:29092,kafka2:29092,kafka3:29092
+      KAFKA_CLUSTERS_0_JMXEXPORTER_ENABLED: true
+    networks:
+      - ecommerce-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8080/actuator/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # pgAdmin
+  pgadmin:
+    image: dpage/pgadmin4:8.10
+    container_name: ecommerce-pgadmin
+    depends_on:
+      - postgres
+    ports:
+      - "8081:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+volumes:
+  kafka1-data:
+  kafka2-data:
+  kafka3-data:
+  postgres-data:
+
+networks:
+  ecommerce-network:
+    driver: bridge
