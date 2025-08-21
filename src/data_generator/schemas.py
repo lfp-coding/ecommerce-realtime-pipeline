@@ -1,8 +1,6 @@
 """Pydantic models for synthetic e-commerce data generation (products, customers,
 orders, events). All timestamps are UTC. Unknown fields are rejected (extra=forbid)."""
 
-from __future__ import annotations
-
 import json
 import uuid
 from datetime import datetime, timezone

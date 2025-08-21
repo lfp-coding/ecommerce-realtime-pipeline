@@ -18,8 +18,6 @@ Batch helpers (`generate_products`, `generate_customers`, etc.) are also
 provided for convenience.
 """
 
-from __future__ import annotations
-
 import random
 import uuid
 from dataclasses import dataclass
