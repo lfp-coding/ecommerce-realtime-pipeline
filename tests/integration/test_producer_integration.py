@@ -37,41 +37,42 @@ def admin_client(settings):
 
 
 @pytest.fixture(scope="module")
-def ensure_topics(admin_client, settings):
+def create_test_topics(admin_client):
     """
-    Ensures that the four domain topics exist.
-    Creates them with sensible defaults if not present.
+    Creates temporary test topics for integration tests and deletes them after tests.
     """
+    import uuid
+
+    topic_suffix = str(uuid.uuid4())[:8]
     topics = [
-        (settings.KAFKA_PRODUCT_TOPIC, 3, 3),
-        (settings.KAFKA_CUSTOMER_TOPIC, 3, 3),
-        (settings.KAFKA_ORDER_TOPIC, 3, 3),
-        (settings.KAFKA_EVENT_TOPIC, 3, 3),
+        (f"test_products_{topic_suffix}", 3, 1),
+        (f"test_customers_{topic_suffix}", 3, 1),
+        (f"test_orders_{topic_suffix}", 3, 1),
+        (f"test_events_{topic_suffix}", 3, 1),
     ]
-
-    metadata = admin_client.list_topics(timeout=10)
-    to_create = []
-    for name, partitions, repl in topics:
-        if name not in metadata.topics:
-            to_create.append(
-                NewTopic(topic=name, num_partitions=partitions, replication_factor=repl)
-            )
-
-    if to_create:
-        res = admin_client.create_topics(to_create)
-        for name, fut in res.items():
-            try:
-                fut.result(timeout=15)
-                logger.info("topic.created", topic=name)
-            except Exception as e:
-                # If created in parallel by another test: ignorable error, but log it
-                logger.warning("topic.create_failed", topic=name, error=str(e))
-        # Short wait until topics are fully available
-        time.sleep(2)
-
-    yield
-
-    # No cleanup on purpose, as these are "system topics" for the project.
+    topic_names = [name for name, _, _ in topics]
+    to_create = [
+        NewTopic(topic=name, num_partitions=partitions, replication_factor=repl)
+        for name, partitions, repl in topics
+    ]
+    res = admin_client.create_topics(to_create)
+    for name, fut in res.items():
+        try:
+            fut.result(timeout=15)
+            logger.info("topic.created", topic=name)
+        except Exception as e:
+            logger.warning("topic.create_failed", topic=name, error=str(e))
+    time.sleep(2)
+    yield topic_names
+    # Cleanup: delete topics
+    del_res = admin_client.delete_topics(topic_names, operation_timeout=15)
+    for name, fut in del_res.items():
+        try:
+            fut.result(timeout=15)
+            logger.info("topic.deleted", topic=name)
+        except Exception as e:
+            logger.warning("topic.delete_failed", topic=name, error=str(e))
+    time.sleep(2)
 
 
 @pytest.fixture
@@ -130,24 +131,30 @@ def _poll_messages(consumer, topics, expected_total, timeout_sec=20):
 
 
 class TestDataProducerIntegration:
-    def test_data_producer_end_to_end(self, settings, ensure_topics, consumer):
+    def test_data_producer_end_to_end(self, settings, create_test_topics, consumer):
         """
         End-to-end Test:
-        - produce_batch() sends a small number of entities
+        - produce_batch() sends a small number of entities to test topics
         - Consumer verifies arrival and basic field structure
         """
-        # Keep small for fast tests
         product_count = 3
         customer_count = 2
         order_count = 5
         event_count = 7
         seed = 123
 
+        # Map test topics to settings for the producer
+        product_topic, customer_topic, order_topic, event_topic = create_test_topics
+
+        # Patch settings to use test topics
+        settings.KAFKA_PRODUCT_TOPIC = product_topic
+        settings.KAFKA_CUSTOMER_TOPIC = customer_topic
+        settings.KAFKA_ORDER_TOPIC = order_topic
+        settings.KAFKA_EVENT_TOPIC = event_topic
+
         producer = DataProducer(settings)
-        # Before the test: reset metrics to 0
         assert producer.metrics.produced_messages == 0
 
-        # Produce Batch
         metrics = producer.produce_batch(
             product_count=product_count,
             customer_count=customer_count,
@@ -160,39 +167,26 @@ class TestDataProducerIntegration:
         expected_total = product_count + customer_count + order_count + event_count
         assert metrics.produced_messages == expected_total, "Producer metrics mismatch"
 
-        topics = [
-            settings.KAFKA_PRODUCT_TOPIC,
-            settings.KAFKA_CUSTOMER_TOPIC,
-            settings.KAFKA_ORDER_TOPIC,
-            settings.KAFKA_EVENT_TOPIC,
-        ]
-
-        # Consume and validate
+        topics = [product_topic, customer_topic, order_topic, event_topic]
         received = _poll_messages(consumer, topics, expected_total, timeout_sec=30)
 
-        # Basic checks: count per topic > 0 and sum == expected_total
-        assert len(received[settings.KAFKA_PRODUCT_TOPIC]) == product_count
-        assert len(received[settings.KAFKA_CUSTOMER_TOPIC]) == customer_count
-        assert len(received[settings.KAFKA_ORDER_TOPIC]) == order_count
-        assert len(received[settings.KAFKA_EVENT_TOPIC]) == event_count
+        assert len(received[product_topic]) == product_count
+        assert len(received[customer_topic]) == customer_count
+        assert len(received[order_topic]) == order_count
+        assert len(received[event_topic]) == event_count
         total_received = sum(len(v) for v in received.values())
         assert total_received == expected_total
 
-        # Field checks (lightweight, schema-near)
-
-        # Products
-        for p in received[settings.KAFKA_PRODUCT_TOPIC]:
+        for p in received[product_topic]:
             assert (
                 "product_id" in p and "name" in p and "category" in p and "price" in p
             )
             assert isinstance(p["price"], (int, float))
 
-        # Customers
-        for c in received[settings.KAFKA_CUSTOMER_TOPIC]:
+        for c in received[customer_topic]:
             assert "customer_id" in c and "email" in c and "name" in c
 
-        # Orders
-        for o in received[settings.KAFKA_ORDER_TOPIC]:
+        for o in received[order_topic]:
             assert (
                 "order_id" in o and "customer_id" in o and "items" in o and "total" in o
             )
@@ -203,8 +197,7 @@ class TestDataProducerIntegration:
             for it in o["items"]:
                 assert "product_id" in it and "quantity" in it and "unit_price" in it
 
-        # Events
-        for e in received[settings.KAFKA_EVENT_TOPIC]:
+        for e in received[event_topic]:
             assert "event_id" in e and "event_type" in e and "customer_id" in e
 
         logger.info(

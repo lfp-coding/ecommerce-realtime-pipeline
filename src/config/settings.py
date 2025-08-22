@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     DB_NAME: str = "ecommerce_analytics"
     DB_USER: str = "admin"
     DB_PASSWORD: str = "your-strong-db-password"
+    DB_TEST_NAME: str = "ecommerce_analytics_test"
 
     @property
     def database_url(self) -> str:

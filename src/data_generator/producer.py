@@ -251,11 +251,6 @@ class DataProducer:
 
     def close(self) -> None:
         self.flush()
-        self.log.info(
-            "producer.closed",
-            produced=self.metrics.produced_messages,
-            errors=self.metrics.errors,
-        )
 
     def _shutdown_hook(self) -> None:
         try:
