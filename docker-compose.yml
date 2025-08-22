@@ -7,6 +7,8 @@ services:
     ports:
       - "9092:9092"
       - "9101:9101"
+    cpus: "1.0"
+    mem_limit: 1G
     environment: &kafka-env
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: "broker,controller"
@@ -28,7 +30,7 @@ services:
       KAFKA_DEFAULT_REPLICATION_FACTOR: 3
       KAFKA_MIN_INSYNC_REPLICAS: 2
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
-      KAFKA_HEAP_OPTS: "-Xmx1G -Xms1G"
+      KAFKA_HEAP_OPTS: "-Xmx512M -Xms512M"
       # JMX
       KAFKA_JMX_PORT: 9101
     volumes:
@@ -58,6 +60,8 @@ services:
     ports:
       - "9093:9092"
       - "9102:9101"
+    cpus: "1.0"
+    mem_limit: 1G
     environment:
       <<: *kafka-env
       KAFKA_NODE_ID: 2
@@ -92,6 +96,8 @@ services:
     ports:
       - "9094:9092"
       - "9103:9101"
+    cpus: "1.0"
+    mem_limit: 1G
     environment:
       <<: *kafka-env
       KAFKA_NODE_ID: 3
@@ -123,10 +129,13 @@ services:
     image: postgres:16.4-alpine
     hostname: postgres
     container_name: ecommerce-postgres
+    cpus: "0.5"
+    mem_limit: 512M
     environment:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_TEST_DB: ${DB_TEST_NAME}
     ports:
       - "5432:5432"
     volumes:
@@ -137,9 +146,9 @@ services:
     command:
       - "postgres"
       - "-c"
-      - "shared_buffers=256MB"
+      - "shared_buffers=128MB"
       - "-c"
-      - "work_mem=64MB"
+      - "work_mem=32MB"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 10s
@@ -151,6 +160,8 @@ services:
   kafka-ui:
     image: provectuslabs/kafka-ui:v0.7.2
     container_name: ecommerce-kafka-ui
+    cpus: "0.5"
+    mem_limit: 512M
     depends_on:
       - kafka1
       - kafka2
@@ -182,6 +193,8 @@ services:
   pgadmin:
     image: dpage/pgadmin4:8.10
     container_name: ecommerce-pgadmin
+    cpus: "0.5"
+    mem_limit: 512M
     depends_on:
       - postgres
     ports:
