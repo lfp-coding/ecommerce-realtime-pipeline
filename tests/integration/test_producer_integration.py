@@ -177,29 +177,6 @@ class TestDataProducerIntegration:
         total_received = sum(len(v) for v in received.values())
         assert total_received == expected_total
 
-        for p in received[product_topic]:
-            assert (
-                "product_id" in p and "name" in p and "category" in p and "price" in p
-            )
-            assert isinstance(p["price"], (int, float))
-
-        for c in received[customer_topic]:
-            assert "customer_id" in c and "email" in c and "name" in c
-
-        for o in received[order_topic]:
-            assert (
-                "order_id" in o and "customer_id" in o and "items" in o and "total" in o
-            )
-            assert isinstance(o["items"], list)
-            assert isinstance(o["total"], (int, float))
-            # At least one item and each item has product_id, quantity, unit_price
-            assert len(o["items"]) >= 1
-            for it in o["items"]:
-                assert "product_id" in it and "quantity" in it and "unit_price" in it
-
-        for e in received[event_topic]:
-            assert "event_id" in e and "event_type" in e and "customer_id" in e
-
         logger.info(
             "producer.integration.ok",
             produced=metrics.produced_messages,

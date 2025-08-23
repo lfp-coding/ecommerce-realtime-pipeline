@@ -53,6 +53,14 @@ def test_settings_defaults():
     assert settings.PGADMIN_PASSWORD == "your-strong-pgadmin-password"
     logger.info("config.defaults.ok")
 
+    # Corruption Settings
+    assert settings.CORRUPTION_ENABLED is True
+    assert settings.CORRUPTION_RANDOM_SEED is None
+    assert settings.CORRUPTION_PROBABILITY_PRODUCT == 0.01
+    assert settings.CORRUPTION_PROBABILITY_CUSTOMER == 0.02
+    assert settings.CORRUPTION_PROBABILITY_ORDER == 0.03
+    assert settings.CORRUPTION_PROBABILITY_EVENT == 0.04
+
 
 def test_settings_env_override(monkeypatch):
     """Test that all settings can be overridden by environment variables."""
@@ -97,6 +105,14 @@ def test_settings_env_override(monkeypatch):
     monkeypatch.setenv("PGADMIN_EMAIL", "test@ecommerce.com")
     monkeypatch.setenv("PGADMIN_PASSWORD", "test-pgadmin-password")
 
+    # Corruption Settings
+    monkeypatch.setenv("CORRUPTION_ENABLED", "false")
+    monkeypatch.setenv("CORRUPTION_RANDOM_SEED", "42")
+    monkeypatch.setenv("CORRUPTION_PROBABILITY_PRODUCT", "0.02")
+    monkeypatch.setenv("CORRUPTION_PROBABILITY_CUSTOMER", "0.03")
+    monkeypatch.setenv("CORRUPTION_PROBABILITY_ORDER", "0.04")
+    monkeypatch.setenv("CORRUPTION_PROBABILITY_EVENT", "0.05")
+
     settings = Settings()
 
     # Application
@@ -137,6 +153,15 @@ def test_settings_env_override(monkeypatch):
     # pgAdmin
     assert settings.PGADMIN_EMAIL == "test@ecommerce.com"
     assert settings.PGADMIN_PASSWORD == "test-pgadmin-password"
+
+    # Corruption Settings
+    assert settings.CORRUPTION_ENABLED is False
+    assert settings.CORRUPTION_RANDOM_SEED == 42
+    assert settings.CORRUPTION_PROBABILITY_PRODUCT == 0.02
+    assert settings.CORRUPTION_PROBABILITY_CUSTOMER == 0.03
+    assert settings.CORRUPTION_PROBABILITY_ORDER == 0.04
+    assert settings.CORRUPTION_PROBABILITY_EVENT == 0.05
+
     logger.info("config.env_override.ok")
 
 

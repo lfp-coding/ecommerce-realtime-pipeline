@@ -192,39 +192,32 @@ class DataProducer:
         event_count: int = 0,
         seed: int | None = None,
         flush: bool = True,
+        corruption_enabled: bool | None = None,
     ) -> ProducerMetrics:
-        """Generate & publish a batch of synthetic records.
+        """Generate & publish a batch of synthetic records using utils.generate_batch."""
 
-        Returns current (cumulative) metrics snapshot.
-        """
-
-        utils.set_random_seed(seed)
-
-        # Generate coherent batch if orders/events rely on previously created entities.
-        # We generate products & customers explicitly, then pass IDs for orders/events.
-        products = utils.generate_products(product_count) if product_count else []
-        customers = utils.generate_customers(customer_count) if customer_count else []
-        customer_ids = [c.customer_id for c in customers]
-        orders = (
-            utils.generate_orders(
-                order_count, products=products, customer_ids=customer_ids
+        if corruption_enabled is None:
+            corruption_enabled = bool(
+                getattr(self.settings, "CORRUPTION_ENABLED", True)
             )
-            if order_count
-            else []
-        )
-        events = (
-            utils.generate_events(event_count, customer_ids=customer_ids)
-            if event_count
-            else []
+
+        batch = utils.generate_batch(
+            product_count=product_count,
+            customer_count=customer_count,
+            order_count=order_count,
+            event_count=event_count,
+            seed=seed,
+            corruption_enabled=corruption_enabled,
+            settings=self.settings,
         )
 
-        for p in products:
+        for p in batch.products:
             self.produce_product(p)
-        for c in customers:
+        for c in batch.customers:
             self.produce_customer(c)
-        for o in orders:
+        for o in batch.orders:
             self.produce_order(o)
-        for e in events:
+        for e in batch.events:
             self.produce_event(e)
 
         if flush:
@@ -232,10 +225,10 @@ class DataProducer:
 
         self.log.info(
             "producer.batch_complete",
-            products=len(products),
-            customers=len(customers),
-            orders=len(orders),
-            events=len(events),
+            products=len(batch.products),
+            customers=len(batch.customers),
+            orders=len(batch.orders),
+            events=len(batch.events),
             produced_messages=self.metrics.produced_messages,
             errors=self.metrics.errors,
         )
@@ -262,8 +255,12 @@ class DataProducer:
 # ----------------------------------------------------------------------
 # Factory / CLI
 # ----------------------------------------------------------------------
-def create_producer() -> DataProducer:
-    return DataProducer(Settings())
+def create_producer(use_env_file: bool = False, env_file: str = ".env") -> DataProducer:
+    if use_env_file:
+        settings = Settings.from_env_file(env_file)
+    else:
+        settings = Settings()
+    return DataProducer(settings)
 
 
 def run_cli(argv: list[str] | None = None) -> int:

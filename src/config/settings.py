@@ -58,6 +58,14 @@ class Settings(BaseSettings):
     PGADMIN_EMAIL: str = "admin@ecommerce.com"
     PGADMIN_PASSWORD: str = "your-strong-pgadmin-password"
 
+    # Corruption Settings
+    CORRUPTION_ENABLED: bool = True
+    CORRUPTION_RANDOM_SEED: int | None = None
+    CORRUPTION_PROBABILITY_PRODUCT: float = 0.01
+    CORRUPTION_PROBABILITY_CUSTOMER: float = 0.02
+    CORRUPTION_PROBABILITY_ORDER: float = 0.03
+    CORRUPTION_PROBABILITY_EVENT: float = 0.04
+
     @classmethod
     def from_env_file(cls, env_file: str = ".env") -> "Settings":
         """
