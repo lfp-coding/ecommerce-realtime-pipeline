@@ -364,11 +364,13 @@ class TestDataProducer:
         mock_customers[0].customer_id = "cust1"
         mock_customers[1].customer_id = "cust2"
 
-        mock_utils.set_random_seed = Mock()
-        mock_utils.generate_products.return_value = mock_products
-        mock_utils.generate_customers.return_value = mock_customers
-        mock_utils.generate_orders.return_value = mock_orders
-        mock_utils.generate_events.return_value = mock_events
+        # SyntheticBatch mock
+        synthetic_batch = Mock()
+        synthetic_batch.products = mock_products
+        synthetic_batch.customers = mock_customers
+        synthetic_batch.orders = mock_orders
+        synthetic_batch.events = mock_events
+        mock_utils.generate_batch.return_value = synthetic_batch
 
         result = producer.produce_batch(
             product_count=2,
@@ -380,14 +382,14 @@ class TestDataProducer:
         )
 
         # Verify utils calls
-        mock_utils.set_random_seed.assert_called_once_with(42)
-        mock_utils.generate_products.assert_called_once_with(2)
-        mock_utils.generate_customers.assert_called_once_with(2)
-        mock_utils.generate_orders.assert_called_once_with(
-            1, products=mock_products, customer_ids=["cust1", "cust2"]
-        )
-        mock_utils.generate_events.assert_called_once_with(
-            3, customer_ids=["cust1", "cust2"]
+        mock_utils.generate_batch.assert_called_once_with(
+            product_count=2,
+            customer_count=2,
+            order_count=1,
+            event_count=3,
+            seed=42,
+            corruption_enabled=True,
+            settings=mock_settings,
         )
 
         # Verify entity production calls

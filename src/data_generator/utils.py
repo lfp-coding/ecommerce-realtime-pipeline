@@ -23,6 +23,9 @@ import uuid
 from dataclasses import dataclass
 from typing import List, Literal, Sequence, cast
 
+from src.config.settings import Settings
+
+from .corruptions import corrupt_batch
 from .schemas import (
     Customer,
     Event,
@@ -312,6 +315,8 @@ def generate_batch(
     order_count: int = 25,
     event_count: int = 50,
     seed: int | None = None,
+    corruption_enabled: bool = False,
+    settings: Settings | None = None,
 ) -> SyntheticBatch:
     """Generate a coherent batch of products, customers, orders & events."""
 
@@ -321,4 +326,10 @@ def generate_batch(
     customer_ids = [c.customer_id for c in customers]
     orders = generate_orders(order_count, products=products, customer_ids=customer_ids)
     events = generate_events(event_count, customer_ids=customer_ids)
-    return SyntheticBatch(products, customers, orders, events)
+
+    batch = SyntheticBatch(products, customers, orders, events)
+    if corruption_enabled:
+        if settings is None:
+            settings = Settings()
+        batch = corrupt_batch(batch, settings)
+    return batch
