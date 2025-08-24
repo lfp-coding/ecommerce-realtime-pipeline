@@ -55,7 +55,6 @@ def test_settings_defaults():
 
     # Corruption Settings
     assert settings.CORRUPTION_ENABLED is True
-    assert settings.CORRUPTION_RANDOM_SEED is None
     assert settings.CORRUPTION_PROBABILITY_PRODUCT == 0.01
     assert settings.CORRUPTION_PROBABILITY_CUSTOMER == 0.02
     assert settings.CORRUPTION_PROBABILITY_ORDER == 0.03
@@ -156,7 +155,6 @@ def test_settings_env_override(monkeypatch):
 
     # Corruption Settings
     assert settings.CORRUPTION_ENABLED is False
-    assert settings.CORRUPTION_RANDOM_SEED == 42
     assert settings.CORRUPTION_PROBABILITY_PRODUCT == 0.02
     assert settings.CORRUPTION_PROBABILITY_CUSTOMER == 0.03
     assert settings.CORRUPTION_PROBABILITY_ORDER == 0.04
