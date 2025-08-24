@@ -9,7 +9,7 @@ import structlog
 def configure_logging(settings_obj) -> None:
     """Configure structured logging for the application with provided settings."""
 
-    handlers = [logging.StreamHandler(sys.stdout)]
+    handlers: list[logging.Handler] = [logging.StreamHandler(sys.stdout)]
     if settings_obj.LOG_TO_FILE:
         log_file_path = Path("logs/app.log")
         log_file_path.parent.mkdir(parents=True, exist_ok=True)
