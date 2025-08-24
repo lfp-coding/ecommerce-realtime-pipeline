@@ -1,0 +1,5 @@
+services:
+  # Producer Service
+  producer:
+    volumes:
+      - ./src:/app/src

@@ -4,8 +4,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
-    model_config = SettingsConfigDict()
-
     # Application
     APP_ENV: str = "local"  # local | dev | prod
     SERVICE_NAME: str = "ecommerce-pipeline"
@@ -60,7 +58,6 @@ class Settings(BaseSettings):
 
     # Corruption Settings
     CORRUPTION_ENABLED: bool = True
-    CORRUPTION_RANDOM_SEED: int | None = None
     CORRUPTION_PROBABILITY_PRODUCT: float = 0.01
     CORRUPTION_PROBABILITY_CUSTOMER: float = 0.02
     CORRUPTION_PROBABILITY_ORDER: float = 0.03

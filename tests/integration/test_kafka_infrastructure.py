@@ -18,11 +18,7 @@ from confluent_kafka.admin import (
     ResourceType,
 )
 
-from src.config.logging_config import configure_logging
-from src.config.settings import Settings
-
 logger = structlog.get_logger(__name__)
-configure_logging(Settings())
 
 
 class TestKafkaInfrastructure:

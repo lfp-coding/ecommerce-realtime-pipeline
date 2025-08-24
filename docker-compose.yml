@@ -206,6 +206,75 @@ services:
       - ecommerce-network
     restart: unless-stopped
 
+  # Producer Service
+  producer:
+    build:
+      context: .
+    container_name: ecommerce-producer
+    cpus: "0.5"
+    mem_limit: 512M
+    depends_on:
+      - kafka1
+      - kafka2
+      - kafka3
+    environment:
+      # Application
+      APP_ENV: ${APP_ENV}
+      SERVICE_NAME: ${SERVICE_NAME}
+      LOG_LEVEL: ${LOG_LEVEL}
+      LOG_FORMAT: ${LOG_FORMAT}
+      LOG_TO_FILE: ${LOG_TO_FILE}
+      LOG_FILE_MAX_BYTES: ${LOG_FILE_MAX_BYTES}
+      LOG_FILE_BACKUP_COUNT: ${LOG_FILE_BACKUP_COUNT}
+      BATCH_SIZE: ${BATCH_SIZE}
+
+      # Kafka Cluster / Client / Topics
+      KAFKA_CLUSTER_ID: ${KAFKA_CLUSTER_ID}
+      KAFKA_BOOTSTRAP_SERVERS: kafka1:29092,kafka2:29092,kafka3:29092
+      KAFKA_CLIENT_ID: ecommerce-producer
+      KAFKA_ORDER_TOPIC: ${KAFKA_ORDER_TOPIC}
+      KAFKA_CUSTOMER_TOPIC: ${KAFKA_CUSTOMER_TOPIC}
+      KAFKA_PRODUCT_TOPIC: ${KAFKA_PRODUCT_TOPIC}
+      KAFKA_EVENT_TOPIC: ${KAFKA_EVENT_TOPIC}
+
+      # PostgreSQL
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_TEST_NAME: ${DB_TEST_NAME}
+
+      # Dashboard
+      DASHBOARD_PORT: ${DASHBOARD_PORT}
+
+      # Monitoring
+      METRICS_ENABLED: ${METRICS_ENABLED}
+      HEALTHCHECK_INTERVAL_SECONDS: ${HEALTHCHECK_INTERVAL_SECONDS}
+
+      # pgAdmin (falls im App Code genutzt)
+      PGADMIN_EMAIL: ${PGADMIN_EMAIL}
+      PGADMIN_PASSWORD: ${PGADMIN_PASSWORD}
+
+      # Corruption Settings
+      CORRUPTION_ENABLED: ${CORRUPTION_ENABLED}
+      CORRUPTION_RANDOM_SEED: ${CORRUPTION_RANDOM_SEED}
+      CORRUPTION_PROBABILITY_PRODUCT: ${CORRUPTION_PROBABILITY_PRODUCT}
+      CORRUPTION_PROBABILITY_CUSTOMER: ${CORRUPTION_PROBABILITY_CUSTOMER}
+      CORRUPTION_PROBABILITY_ORDER: ${CORRUPTION_PROBABILITY_ORDER}
+      CORRUPTION_PROBABILITY_EVENT: ${CORRUPTION_PROBABILITY_EVENT}
+    command: ["sleep", "infinity"]
+    networks:
+      - ecommerce-network
+    volumes:
+      - .logs:/app/logs # For log files if LOG_TO_FILE is true
+    healthcheck:
+      test: ["CMD", "python", "-c", "import src.config.settings"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
 volumes:
   kafka1-data:
   kafka2-data:
