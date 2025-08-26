@@ -177,7 +177,7 @@ jobs:
           EOF
 
       - name: Run Safety check
-        run: safety check --json --output json > safety-report.json
+        run: safety check --output json > safety-report.json
 
       - name: Upload security reports
         if: always()

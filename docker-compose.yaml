@@ -205,7 +205,7 @@ services:
     networks:
       - ecommerce-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80/login"]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:80/login"]
       interval: 30s
       timeout: 10s
       retries: 5
