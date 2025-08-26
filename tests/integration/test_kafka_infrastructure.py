@@ -18,22 +18,29 @@ from confluent_kafka.admin import (
     ResourceType,
 )
 
+from src.config.settings import Settings
+
 logger = structlog.get_logger(__name__)
+
+
+@pytest.fixture(scope="module")
+def settings():
+    return Settings()
 
 
 class TestKafkaInfrastructure:
     """Test Kafka KRaft cluster functionality and performance"""
 
     @pytest.fixture(scope="class")
-    def kafka_config(self):
+    def kafka_config(self, settings):
         """Kafka connection configuration"""
-        return {"bootstrap.servers": "localhost:9092", "client.id": "test-client"}
+        bootstrap_servers = settings.KAFKA_BOOTSTRAP_SERVERS
+        return {"bootstrap.servers": bootstrap_servers, "client.id": "test-client"}
 
     @pytest.fixture(scope="class")
     def admin_client(self, kafka_config):
         """Kafka admin client for cluster management"""
-        client = AdminClient(kafka_config)
-        return client
+        return AdminClient(kafka_config)
 
     def test_kafka_cluster_health(self, admin_client):
         """Verify Kafka cluster is healthy and accessible"""

@@ -224,6 +224,7 @@ services:
       - kafka3
     environment:
       # Application
+      PYTHONPATH: /app
       APP_ENV: ${APP_ENV}
       SERVICE_NAME: ${SERVICE_NAME}
       LOG_LEVEL: ${LOG_LEVEL}
