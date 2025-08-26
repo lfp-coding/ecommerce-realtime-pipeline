@@ -86,7 +86,7 @@ jobs:
       - name: Wait for services to be healthy
         run: |
           set -e
-          TIMEOUT=60
+          TIMEOUT=180
           INTERVAL=2
           for ((i=0; i<$TIMEOUT; i+=$INTERVAL)); do
             unhealthy=$(docker ps --filter "health=unhealthy" --format "{{.Names}}")
@@ -177,7 +177,7 @@ jobs:
           EOF
 
       - name: Run Safety check
-        run: safety check --json --output safety-report.json
+        run: safety check --json --output json > safety-report.json
 
       - name: Upload security reports
         if: always()
