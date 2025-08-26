@@ -107,7 +107,7 @@ jobs:
           docker exec test-runner pytest tests/integration --maxfail=1 --disable-warnings -q --html=integration-test-report.html --import-mode=importlib
 
       - name: Copy report from container
-        run: docker cp test-runner:/integration-test-report.html integration-test-report.html
+        run: docker cp test-runner:/app/integration-test-report.html integration-test-report.html
 
       - name: Upload integration test report
         if: always()
