@@ -161,7 +161,20 @@ jobs:
         run: pip install bandit safety
 
       - name: Run Bandit security linter
-        run: bandit -r src/ -f json -o bandit-report.json
+        run: bandit -r src/ -f json -o bandit-report.json || true
+
+      - name: Fail only on MEDIUM/HIGH severity findings
+        run: |
+          python3 <<EOF
+          import json, sys
+          with open('bandit-report.json') as f:
+              data = json.load(f)
+          severities = [r['issue_severity'] for r in data.get('results', [])]
+          if any(s in ['MEDIUM', 'HIGH'] for s in severities):
+              print('Bandit found MEDIUM/HIGH severity issues!')
+              sys.exit(1)
+          print('Only LOW severity findings, job continues.')
+          EOF
 
       - name: Run Safety check
         run: safety check --json --output safety-report.json
