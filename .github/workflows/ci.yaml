@@ -1,0 +1,166 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  lint:
+    name: Lint Code
+    runs-on: ubuntu-latest
+
+    permissions:
+    contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pre-commit
+        run: pip install pre-commit
+
+      - name: Run pre-commit checks
+        run: pre-commit run --all-files
+
+  unit-test:
+    name: Unit Test
+    runs-on: ubuntu-latest
+
+    permissions:
+    contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run unit tests and generate HTML report
+        run: pytest tests/unit --html=unit-test-report.html
+
+      - name: Upload unit test report
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-report
+          path: unit-test-report.html
+
+  integration-test:
+    name: Integration Test
+    runs-on: ubuntu-latest
+
+    permissions:
+    contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Prepare env file
+        run: |
+          cp .env.example .env
+
+      - name: Start stack with docker-compose and test container
+        run: |
+          docker-compose -f docker-compose.yaml -f docker-compose.ci.yaml up -d
+
+      - name: Wait for services to be healthy
+        run: |
+          set -e
+          TIMEOUT=60
+          INTERVAL=2
+          for ((i=0; i<$TIMEOUT; i+=$INTERVAL)); do
+            unhealthy=$(docker ps --filter "health=unhealthy" --format "{{.Names}}")
+            starting=$(docker ps --filter "health=starting" --format "{{.Names}}")
+            if [[ -z "$unhealthy" && -z "$starting" ]]; then
+              echo "All containers are healthy."
+              exit 0
+            fi
+            echo "Waiting for healthy containers..."
+            sleep $INTERVAL
+          done
+          echo "Timeout waiting for healthy containers!"
+          docker ps
+          exit 1
+
+      - name: Run tests and generate report
+        run: |
+          docker exec test-runner pytest tests/integration --maxfail=1 --disable-warnings -q --html=integration-test-report.html
+
+      - name: Copy report from container
+        run: docker cp test-runner:/integration-test-report.html integration-test-report.html
+
+      - name: Upload integration test report
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-report
+          path: integration-test-report.html
+
+      - name: Show logs on failure
+        if: failure()
+        run: |
+          echo "==== docker ps ===="
+          docker ps
+          echo "==== logs: postgres ===="
+          docker logs ecommerce-postgres || true
+          echo "==== logs: kafka1 ===="
+          docker logs ecommerce-kafka1 || true
+          echo "==== logs: kafka2 ===="
+          docker logs ecommerce-kafka2 || true
+          echo "==== logs: kafka3 ===="
+          docker logs ecommerce-kafka3 || true
+          echo "==== logs: producer ===="
+          docker logs ecommerce-producer || true
+          echo "==== logs: kafka-ui ===="
+          docker logs ecommerce-kafka-ui || true
+          echo "==== logs: test-runner ===="
+          docker logs test-runner || true
+
+      - name: Tear down
+        run: |
+          docker-compose -f docker-compose.yaml -f docker-compose.ci.yaml down -v
+
+  security:
+    - name: Security Scan
+      runs-on: ubuntu-latest
+
+      permissions:
+      contents: read
+
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
+
+        - name: Set up Python
+          uses: actions/setup-python@v5
+          with:
+            python-version: "3.12"
+
+        - name: Install security tools
+          run: pip install bandit safety
+
+        - name: Run Bandit security linter
+          run: bandit -r src/ -f json -o bandit-report.json
+
+        - name: Run Safety check
+          run: safety check --json --output safety-report.json
+
+        - name: Upload security reports
+          uses: actions/upload-artifact@v4
+          with:
+            name: security-reports
+            path: |
+              bandit-report.json
+              safety-report.json

@@ -37,6 +37,3 @@ RUN chown -R appuser:appuser /app
 
 # Switch to non-root user
 USER appuser
-
-# Healthcheck
-# HEALTHCHECK CMD python -c "import src.config.settings" || exit 1
