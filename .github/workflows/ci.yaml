@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-    contents: read
+      contents: read
 
     steps:
       - name: Checkout code
@@ -34,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-    contents: read
+      contents: read
 
     steps:
       - name: Checkout code
@@ -62,7 +62,7 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-    contents: read
+      contents: read
 
     steps:
       - name: Checkout code
@@ -133,34 +133,34 @@ jobs:
           docker-compose -f docker-compose.yaml -f docker-compose.ci.yaml down -v
 
   security:
-    - name: Security Scan
-      runs-on: ubuntu-latest
+    name: Security Scan
+    runs-on: ubuntu-latest
 
-      permissions:
+    permissions:
       contents: read
 
-      steps:
-        - name: Checkout code
-          uses: actions/checkout@v4
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-        - name: Set up Python
-          uses: actions/setup-python@v5
-          with:
-            python-version: "3.12"
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
-        - name: Install security tools
-          run: pip install bandit safety
+      - name: Install security tools
+        run: pip install bandit safety
 
-        - name: Run Bandit security linter
-          run: bandit -r src/ -f json -o bandit-report.json
+      - name: Run Bandit security linter
+        run: bandit -r src/ -f json -o bandit-report.json
 
-        - name: Run Safety check
-          run: safety check --json --output safety-report.json
+      - name: Run Safety check
+        run: safety check --json --output safety-report.json
 
-        - name: Upload security reports
-          uses: actions/upload-artifact@v4
-          with:
-            name: security-reports
-            path: |
-              bandit-report.json
-              safety-report.json
+      - name: Upload security reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports
+          path: |
+            bandit-report.json
+            safety-report.json
