@@ -12,6 +12,7 @@ SQLAlchemy==2.0.43
 # Testing
 pytest==8.4.1
 pytest-mock==3.14.0
+pytest-html==4.1.1
 
 # Dashboard
 streamlit==1.48.0

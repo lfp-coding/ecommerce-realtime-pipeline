@@ -1,0 +1,6 @@
+services:
+  # Test Runner Service
+  test-runner:
+    volumes:
+      - ./src:/app/src
+      - ./tests/integration:/app/tests/integration

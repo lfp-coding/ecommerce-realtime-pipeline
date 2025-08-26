@@ -1,4 +1,7 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict
+import os
+from typing import Self
+
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
@@ -64,12 +67,10 @@ class Settings(BaseSettings):
     CORRUPTION_PROBABILITY_EVENT: float = 0.04
 
     @classmethod
-    def from_env_file(cls, env_file: str = ".env") -> "Settings":
+    def from_env_file(cls, env_file: str = ".env") -> Self:
         """
         Create Settings loading variables explicitly from a .env file.
         """
+        os.environ["DOTENV_PATH"] = env_file
 
-        class _EnvFileSettings(cls):
-            model_config = SettingsConfigDict(env_file=env_file)
-
-        return _EnvFileSettings()
+        return cls()

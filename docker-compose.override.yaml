@@ -3,3 +3,4 @@ services:
   producer:
     volumes:
       - ./src:/app/src
+      - ./tests/integration:/app/tests/integration

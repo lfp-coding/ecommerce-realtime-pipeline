@@ -32,11 +32,11 @@ RUN pip install --upgrade pip && \
 # Copy source code
 COPY src/ /app/src/
 
+# Copy integration tests
+COPY tests/integration /app/tests/integration
+
 # Set ownership
 RUN chown -R appuser:appuser /app
 
 # Switch to non-root user
 USER appuser
-
-# Healthcheck
-# HEALTHCHECK CMD python -c "import src.config.settings" || exit 1

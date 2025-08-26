@@ -36,7 +36,7 @@ def admin_client(settings):
     )
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def create_test_topics(admin_client):
     """
     Creates temporary test topics for integration tests and deletes them after tests.
@@ -131,6 +131,61 @@ def _poll_messages(consumer, topics, expected_total, timeout_sec=20):
 
 
 class TestDataProducerIntegration:
+    def test_producer_cli_end_to_end(self, settings, create_test_topics, consumer):
+        """
+        Tests the Producer CLI via subprocess:
+        - Starts the CLI with test topics and parameters
+        - Checks if messages land correctly in Kafka
+        """
+        import os
+        import subprocess
+
+        product_count = 2
+        customer_count = 1
+        order_count = 2
+        event_count = 3
+        seed = 42
+
+        product_topic, customer_topic, order_topic, event_topic = create_test_topics
+
+        env = os.environ.copy()
+        env["KAFKA_PRODUCT_TOPIC"] = product_topic
+        env["KAFKA_CUSTOMER_TOPIC"] = customer_topic
+        env["KAFKA_ORDER_TOPIC"] = order_topic
+        env["KAFKA_EVENT_TOPIC"] = event_topic
+        env["KAFKA_BOOTSTRAP_SERVERS"] = settings.KAFKA_BOOTSTRAP_SERVERS
+
+        cmd = [
+            "python",
+            "-m",
+            "src.data_generator.producer",
+            "--products",
+            str(product_count),
+            "--customers",
+            str(customer_count),
+            "--orders",
+            str(order_count),
+            "--events",
+            str(event_count),
+            "--seed",
+            str(seed),
+        ]
+        result = subprocess.run(
+            cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
+        assert result.returncode == 0, f"Producer CLI failed: {result.stderr}"
+
+        expected_total = product_count + customer_count + order_count + event_count
+        topics = [product_topic, customer_topic, order_topic, event_topic]
+        received = _poll_messages(consumer, topics, expected_total, timeout_sec=30)
+
+        assert len(received[product_topic]) == product_count
+        assert len(received[customer_topic]) == customer_count
+        assert len(received[order_topic]) == order_count
+        assert len(received[event_topic]) == event_count
+        total_received = sum(len(v) for v in received.values())
+        assert total_received == expected_total
+
     def test_data_producer_end_to_end(self, settings, create_test_topics, consumer):
         """
         End-to-end Test:
