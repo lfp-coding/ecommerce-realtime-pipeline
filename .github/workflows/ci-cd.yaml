@@ -190,7 +190,7 @@ jobs:
             bandit-report.json
             safety-report.json
 
-  build and push:
+  build-and-push:
     name: Build and Push Docker Image
     runs-on: ubuntu-latest
     needs: [lint, unit-tests, integration-test, security]
