@@ -1,4 +1,4 @@
-name: CI Pipeline
+name: CI/CD Pipeline
 
 on:
   push:
@@ -224,5 +224,5 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: |
-            my-image:latest
-            my-image:${{ github.sha }}
+            ghcr.io/${{ github.repository }}/my-image:latest
+            ghcr.io/${{ github.repository }}/my-image:${{ github.sha }}
